@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
 type executor interface {
@@ -22,7 +23,7 @@ func run(proj string, out io.Writer) error {
 	// 	return &stepErr{step: "go build", msg: "go build failed", cause: err}
 	// }
 	// _, err := fmt.Fprintln(out, "Go build:sucess")
-	pipeline := make([]executor, 3)
+	pipeline := make([]executor, 4)
 	pipeline[0] = newStep(
 		"go build",
 		"go",
@@ -42,6 +43,15 @@ func run(proj string, out io.Writer) error {
 		"Gofmt:SUCCESS",
 		proj,
 		[]string{"-l", "."})
+
+	pipeline[3] = newTimeoutStep(
+		"git push",
+		"git",
+		"Git Push:SUCCESS",
+		proj,
+		[]string{"push", "origin", "master"},
+		10*time.Second,
+	)
 	for _, s := range pipeline {
 		msg, err := s.execute()
 		if err != nil {
